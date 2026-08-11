@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
@@ -17,7 +18,7 @@ AsyncTestingSessionLocal = async_sessionmaker(
 )
 
 
-async def override_get_db() -> AsyncSession:
+async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncTestingSessionLocal() as session:
         yield session
 
@@ -26,7 +27,7 @@ app.dependency_overrides[get_db] = override_get_db
 
 
 @pytest.fixture(autouse=True, scope="function")
-async def prepare_database():
+async def prepare_database() -> AsyncGenerator[None, None]:
     """Создает таблицы перед каждым тестом и удаляет после."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -36,7 +37,7 @@ async def prepare_database():
 
 
 @pytest.mark.anyio
-async def test_recipes_crud_flow():
+async def test_recipes_crud_flow() -> None:
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
@@ -67,7 +68,7 @@ async def test_recipes_crud_flow():
 
 
 @pytest.mark.anyio
-async def test_get_nonexistent_recipe():
+async def test_get_nonexistent_recipe() -> None:
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
