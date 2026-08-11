@@ -24,13 +24,17 @@ app = FastAPI(title="Кулинарная книга API", lifespan=lifespan)
 
 @app.get("/recipes", response_model=list[RecipeListResponse])
 async def get_recipes(db: AsyncSession = Depends(get_db)) -> Any:
-    stmt = select(Recipe).order_by(desc(Recipe.views_count), asc(Recipe.cooking_time))
+    stmt = select(Recipe).order_by(
+        desc(Recipe.views_count), asc(Recipe.cooking_time)
+    )
     result = await db.execute(stmt)
     return result.scalars().all()
 
 
 @app.get("/recipes/{recipe_id}", response_model=RecipeDetailResponse)
-async def get_recipe_detail(recipe_id: int, db: AsyncSession = Depends(get_db)) -> Any:
+async def get_recipe_detail(
+    recipe_id: int, db: AsyncSession = Depends(get_db)
+) -> Any:
     stmt = select(Recipe).where(Recipe.id == recipe_id)
     result = await db.execute(stmt)
     recipe = result.scalar_one_or_none()
@@ -41,7 +45,7 @@ async def get_recipe_detail(recipe_id: int, db: AsyncSession = Depends(get_db)) 
             detail=f"Рецепт с id={recipe_id} не найден.",
         )
 
-    recipe.views_count += 1
+    recipe.views_count += 1  # type: ignore
     await db.commit()
     await db.refresh(recipe)
     return recipe
